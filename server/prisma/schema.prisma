@@ -1,0 +1,140 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  name      String
+  email     String   @unique
+  password  String
+  role      Role
+  createdAt DateTime @default(now())
+
+  // Leads created or assigned
+  leads        Lead[]        @relation("UserLeads")
+  followups    FollowUp[]
+  followUpLogs FollowUpLog[] @relation("UserToFollowUpLogs")
+
+  // 🔗 Hierarchy relationships
+
+  // Agent → Manager
+  managerId Int?
+  manager   User?  @relation("AgentManager", fields: [managerId], references: [id])
+  agents    User[] @relation("AgentManager")
+
+  // Manager → Sr Manager
+  srManagerId Int?
+  srManager   User?  @relation("ManagerSrManager", fields: [srManagerId], references: [id])
+  managers    User[] @relation("ManagerSrManager")
+
+  // Sr Manager → Director
+  directorId Int?
+  director   User?  @relation("SrManagerDirector", fields: [directorId], references: [id])
+  srManagers User[] @relation("SrManagerDirector")
+
+  // Director → CCO
+  ccoId     Int?
+  cco       User?  @relation("DirectorCCO", fields: [ccoId], references: [id])
+  directors User[] @relation("DirectorCCO")
+
+  // Team relation
+  teamId Int?
+  team   Team? @relation(fields: [teamId], references: [id])
+}
+
+model Team {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  createdAt DateTime @default(now())
+  users     User[]
+}
+
+model Lead {
+  id               Int        @id @default(autoincrement())
+  name             String
+  phone            String
+  email            String?
+  country          String
+  city             String
+  areaInterestedIn String
+  planInterestedIn String // e.g. Offplan, Ready to Move
+  propertyType     String // Apartment, Townhouse, etc.
+  projectId        Int? // Optional — links to a Project
+  project          Project?   @relation(fields: [projectId], references: [id])
+  budget           Int // Stored in PKR (slider 1M - 500M)
+  planToPurchase   String // e.g. Immediately, 3 months
+  leadSource       String // Facebook, Instagram, etc.
+  notes            String?
+  status           LeadStatus @default(NEW)
+  assignedTo       User       @relation("UserLeads", fields: [assignedToId], references: [id])
+  assignedToId     Int
+  createdById      Int
+  createdAt        DateTime   @default(now())
+  followups        FollowUp[]
+}
+
+model FollowUp {
+  id               Int           @id @default(autoincrement())
+  lead             Lead          @relation(fields: [leadId], references: [id])
+  leadId           Int
+  message          String
+  nextFollowupDate DateTime
+  createdBy        User          @relation(fields: [createdById], references: [id])
+  createdById      Int
+  createdAt        DateTime      @default(now())
+  logs             FollowUpLog[]
+}
+
+model FollowUpLog {
+  id          Int            @id @default(autoincrement())
+  followup    FollowUp       @relation(fields: [followupId], references: [id])
+  followupId  Int
+  status      FollowupStatus
+  updatedBy   User           @relation("UserToFollowUpLogs", fields: [updatedById], references: [id])
+  updatedById Int
+  updatedAt   DateTime       @default(now())
+}
+
+model Project {
+  id              Int      @id @default(autoincrement())
+  name            String
+  type            String // Apartment, Townhouse, Commercial etc.
+  priceRange      String
+  commissionType  String // Fixed or Percentage
+  commissionValue String
+  createdAt       DateTime @default(now())
+  leads           Lead[]
+}
+
+enum Role {
+  ADMIN
+  CCO
+  DIRECTOR
+  SR_MANAGER
+  MANAGER
+  AGENT
+}
+
+enum LeadStatus {
+  NEW
+  INQUIRY
+  INFO_SHARED
+  MEETING_DONE
+  TOKEN_RECEIVED
+  DOWNPAYMENT
+  SPA
+  CLOSED_WON
+  CLOSED_LOST
+}
+
+enum FollowupStatus {
+  PENDING
+  DONE
+  MISSED
+  RESCHEDULED
+}
