@@ -15,12 +15,12 @@ app.use(cors());
 app.use(express.json());
 
 // Routes
-app.use('/api/auth', require('./routes/auth.routes'));
-app.use('/api/leads', require('./routes/lead.routes'));
-app.use('/api/projects', require('./routes/project.routes'));
-app.use('/api/users', require('./routes/user.routes'));
-app.use('/api/followups', require('./routes/followUp.routes'));
-app.use('/api/export', require('./routes/export.routes'));
+app.use('/api/auth', require('./src/routes/auth.routes'));
+app.use('/api/leads', require('./src/routes/lead.routes'));
+app.use('/api/projects', require('./src/routes/project.routes'));
+app.use('/api/users', require('./src/routes/user.routes'));
+app.use('/api/followups', require('./src/routes/followUp.routes'));
+app.use('/api/export', require('./src/routes/export.routes'));
 
 // Root route (optional)
 app.get('/', (req, res) => {
