@@ -1,9 +1,12 @@
 {
-  "name": "server",
+  "name": "llcrm-backend",
   "version": "1.0.0",
-  "main": "src/server.js",
+  "description": "Backend for LLCRM - Node.js + Express + Prisma + PostgreSQL",
+  "main": "server.js",
   "scripts": {
-    "dev": "nodemon src/server.js"
+    "start": "node server.js",
+    "dev": "nodemon server.js",
+    "postinstall": "prisma generate"
   },
   "dependencies": {
     "@prisma/client": "^6.12.0",
@@ -16,11 +19,6 @@
     "multer": "^2.0.2",
     "xlsx": "^0.18.5"
   },
-"scripts": {
-  "postinstall": "prisma generate",
-  "start": "node server.js",
-  "dev": "nodemon server.js"
-},
   "devDependencies": {
     "nodemon": "^3.1.0",
     "prisma": "^6.12.0"

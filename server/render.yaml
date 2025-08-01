@@ -2,5 +2,16 @@ services:
   - type: web
     name: llcrm-backend
     env: node
+    region: oregon
+    plan: free
+    branch: main
+    rootDir: server
     buildCommand: npm install
     startCommand: node server.js
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: PORT
+        value: 4000

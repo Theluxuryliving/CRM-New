@@ -1,5 +1,15 @@
-node_modules
-# Keep environment variables out of version control
+# Node modules
+node_modules/
+
+# Prisma
+.prisma/
 .env
 
-/src/generated/prisma
+# Logs
+npm-debug.log
+yarn-debug.log
+yarn-error.log
+
+# Optional IDE settings
+.vscode/
+.idea/
