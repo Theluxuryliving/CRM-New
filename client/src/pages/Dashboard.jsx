@@ -1,4 +1,4 @@
-""// 📁 File: src/pages/Dashboard.jsx
+// 📁 File: src/pages/Dashboard.jsx
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useAuth } from '../contexts/AuthContext';
@@ -18,6 +18,7 @@ import {
   Tooltip,
   Legend,
 } from 'chart.js';
+
 ChartJS.register(CategoryScale, LinearScale, BarElement, PointElement, LineElement, ArcElement, Tooltip, Legend);
 
 const Dashboard = () => {
@@ -53,10 +54,11 @@ const Dashboard = () => {
         const raw = leadsRes.data;
         setLeads(Array.isArray(raw.items) ? raw.items : raw);
         setSummary(summaryRes.data);
-        setFollowups(followupsRes.data);
+        setFollowups(Array.isArray(followupsRes.data) ? followupsRes.data : []);
       } catch (err) {
         console.error('❌ Error fetching dashboard data:', err);
         setLeads([]);
+        setFollowups([]);
       } finally {
         setLoading(false);
       }
@@ -66,8 +68,9 @@ const Dashboard = () => {
 
   useEffect(() => {
     const now = new Date();
-    const overdue = followups.filter(f => new Date(f.nextFollowupDate) < now);
-    const upcoming = followups.filter(f => new Date(f.nextFollowupDate) >= now);
+    const safeFollowups = Array.isArray(followups) ? followups : [];
+    const overdue = safeFollowups.filter(f => new Date(f.nextFollowupDate) < now);
+    const upcoming = safeFollowups.filter(f => new Date(f.nextFollowupDate) >= now);
     const msgs = [];
     if (overdue.length > 0) msgs.push(`🔴 ${overdue.length} overdue follow-up(s)`);
     if (upcoming.length > 0) msgs.push(`🟡 ${upcoming.length} upcoming follow-up(s)`);
@@ -217,7 +220,8 @@ const Dashboard = () => {
           <motion.div layout className="bg-white p-4 rounded-2xl shadow-md">
             <h2 className="text-lg font-semibold mb-2">Upcoming Follow-ups</h2>
             <Calendar tileContent={({ date }) => {
-              const hasFollowup = followups.some(f => new Date(f.nextFollowupDate).toDateString() === date.toDateString());
+              const safeFollowups = Array.isArray(followups) ? followups : [];
+              const hasFollowup = safeFollowups.some(f => new Date(f.nextFollowupDate).toDateString() === date.toDateString());
               return hasFollowup ? <span className="text-green-600 font-bold">•</span> : null;
             }} />
           </motion.div>
