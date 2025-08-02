@@ -37,18 +37,18 @@ const Dashboard = () => {
       try {
         setLoading(true);
         const [leadsRes, summaryRes, followupsRes] = await Promise.all([
-          axios.get('/api/leads', {
+          axios.get(`${import.meta.env.VITE_API_BASE_URL}/api/leads`, {
             headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
             params: { timeFrame, ...filters },
           }),
-          axios.get('/api/leads/summary', {
+          axios.get(`${import.meta.env.VITE_API_BASE_URL}/api/leads/summary`, {
             headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
             params: { timeFrame },
           }),
-          axios.get('/api/followups', {
+          axios.get(`${import.meta.env.VITE_API_BASE_URL}/api/followups`, {
             headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
             params: { status: 'PENDING' },
-          })
+          }),
         ]);
 
         const raw = leadsRes.data;
@@ -67,25 +67,31 @@ const Dashboard = () => {
   }, [timeFrame, filters]);
 
   useEffect(() => {
+    if (!Array.isArray(followups)) return;
+
     const now = new Date();
-    const safeFollowups = Array.isArray(followups) ? followups : [];
-    const overdue = safeFollowups.filter(f => new Date(f.nextFollowupDate) < now);
-    const upcoming = safeFollowups.filter(f => new Date(f.nextFollowupDate) >= now);
+    const overdue = followups.filter(f => new Date(f.nextFollowupDate) < now);
+    const upcoming = followups.filter(f => new Date(f.nextFollowupDate) >= now);
     const msgs = [];
     if (overdue.length > 0) msgs.push(`🔴 ${overdue.length} overdue follow-up(s)`);
     if (upcoming.length > 0) msgs.push(`🟡 ${upcoming.length} upcoming follow-up(s)`);
     setAlerts(msgs);
   }, [followups]);
 
-  const leadCount = leads.length;
-  const meetings = leads.filter(l => l.status === 'MEETING_DONE').length;
-  const upcoming = leads.filter(l => new Date(l.nextMeeting) > new Date()).length;
+  const leadCount = Array.isArray(leads) ? leads.length : 0;
+  const meetings = Array.isArray(leads) ? leads.filter(l => l.status === 'MEETING_DONE').length : 0;
+  const upcoming = Array.isArray(leads) ? leads.filter(l => new Date(l.nextMeeting) > new Date()).length : 0;
 
   const funnelStages = {
     NEW: 0, INQUIRY: 0, INFO_SHARED: 0, MEETING_DONE: 0,
     TOKEN_RECEIVED: 0, DOWNPAYMENT: 0, SPA: 0, CLOSED_WON: 0, CLOSED_LOST: 0,
   };
-  leads.forEach(l => funnelStages[l.status] = (funnelStages[l.status] || 0) + 1);
+  if (Array.isArray(leads)) {
+    leads.forEach(l => {
+      const status = l.status || 'NEW';
+      funnelStages[status] = (funnelStages[status] || 0) + 1;
+    });
+  }
 
   const pieData = {
     labels: Object.keys(funnelStages),
@@ -105,7 +111,7 @@ const Dashboard = () => {
       filename: `dashboard-${timeFrame}.pdf`,
       image: { type: 'jpeg', quality: 0.98 },
       html2canvas: { scale: 3 },
-      jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
+      jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' },
     };
     html2pdf().set(opt).from(element).save();
   };
@@ -173,7 +179,7 @@ const Dashboard = () => {
           <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-blue-500"></div>
           <span className="ml-4 text-lg text-blue-600">Loading leads...</span>
         </div>
-      ) : leads.length === 0 ? (
+      ) : leadCount === 0 ? (
         <p className="text-center text-lg py-10">🚫 No leads found for this time frame.</p>
       ) : (
         <div id="dashboard-pdf" className="space-y-6 bg-white p-4 rounded shadow-md">
@@ -220,8 +226,7 @@ const Dashboard = () => {
           <motion.div layout className="bg-white p-4 rounded-2xl shadow-md">
             <h2 className="text-lg font-semibold mb-2">Upcoming Follow-ups</h2>
             <Calendar tileContent={({ date }) => {
-              const safeFollowups = Array.isArray(followups) ? followups : [];
-              const hasFollowup = safeFollowups.some(f => new Date(f.nextFollowupDate).toDateString() === date.toDateString());
+              const hasFollowup = Array.isArray(followups) && followups.some(f => new Date(f.nextFollowupDate).toDateString() === date.toDateString());
               return hasFollowup ? <span className="text-green-600 font-bold">•</span> : null;
             }} />
           </motion.div>
