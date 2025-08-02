@@ -1,51 +1,49 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import axios from "axios";
 import { useAuth } from "../contexts/AuthContext";
+import axiosInstance from "../utils/axios";
 
 const LeadDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { token } = useAuth();
+
   const [lead, setLead] = useState(null);
   const [followups, setFollowups] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [newFollowup, setNewFollowup] = useState({ message: "", nextFollowupDate: "" });
 
-  const headers = {
-    Authorization: `Bearer ${localStorage.getItem("token") || token}`,
-  };
-
   useEffect(() => {
-    axios.get(`/api/leads/${id}`, { headers })
-      .then((res) => setLead(res.data))
-      .catch((err) => {
+    const fetchLeadAndFollowups = async () => {
+      try {
+        const leadRes = await axiosInstance.get(`/leads/${id}`);
+        setLead(leadRes.data);
+      } catch (err) {
         console.error("❌ Failed to fetch lead:", err);
         navigate("/leads");
-      });
+      }
 
-    axios.get(`/api/followups/lead/${id}`, { headers })
-      .then((res) => {
-        if (Array.isArray(res.data)) setFollowups(res.data);
-        else setFollowups([]);
-      })
-      .catch((err) => console.error("❌ Failed to fetch followups:", err));
+      try {
+        const followupRes = await axiosInstance.get(`/followups/lead/${id}`);
+        setFollowups(Array.isArray(followupRes.data) ? followupRes.data : []);
+      } catch (err) {
+        console.error("❌ Failed to fetch followups:", err);
+        setFollowups([]);
+      }
+    };
+
+    fetchLeadAndFollowups();
   }, [id]);
 
   const handleFollowupSubmit = async (e) => {
     e.preventDefault();
     try {
-      await axios.post(
-        "/api/followups",
-        { leadId: id, ...newFollowup },
-        { headers }
-      );
+      await axiosInstance.post("/followups", { leadId: id, ...newFollowup });
       setNewFollowup({ message: "", nextFollowupDate: "" });
       setShowModal(false);
 
-      const res = await axios.get(`/api/followups/lead/${id}`, { headers });
-      if (Array.isArray(res.data)) setFollowups(res.data);
-      else setFollowups([]);
+      const res = await axiosInstance.get(`/followups/lead/${id}`);
+      setFollowups(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
       console.error("❌ Failed to submit follow-up:", err);
     }
@@ -53,11 +51,7 @@ const LeadDetail = () => {
 
   const toggleStatus = async (fid, current) => {
     try {
-      const res = await axios.patch(
-        `/api/followups/${fid}/status`,
-        { status: !current },
-        { headers }
-      );
+      const res = await axiosInstance.patch(`/followups/${fid}/status`, { status: !current });
       setFollowups((prev) =>
         prev.map((f) =>
           f.id === fid ? { ...f, status: res.data.status } : f
@@ -68,7 +62,7 @@ const LeadDetail = () => {
     }
   };
 
-  if (!lead) return <div>Loading Lead...</div>;
+  if (!lead) return <div className="p-6">Loading Lead...</div>;
 
   return (
     <div className="relative min-h-screen bg-gray-100 p-6">
@@ -87,10 +81,7 @@ const LeadDetail = () => {
         <p><strong>Status:</strong> {lead.status}</p>
         <p><strong>Assigned Agent:</strong> {lead.agentName || "Unassigned"}</p>
         <button
-          onClick={() => {
-            console.log("✅ Add Follow-up button clicked");
-            setShowModal(true);
-          }}
+          onClick={() => setShowModal(true)}
           className="mt-4 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
         >
           ➕ Add Follow-up
@@ -116,9 +107,7 @@ const LeadDetail = () => {
               <button
                 onClick={() => toggleStatus(f.id, f.status)}
                 className={`text-white px-3 py-1 rounded ${
-                  f.status
-                    ? "bg-green-600 hover:bg-green-700"
-                    : "bg-gray-500 hover:bg-gray-600"
+                  f.status ? "bg-green-600 hover:bg-green-700" : "bg-gray-500 hover:bg-gray-600"
                 }`}
               >
                 {f.status ? "✅ Done" : "❌ Pending"}
@@ -136,9 +125,7 @@ const LeadDetail = () => {
             <form onSubmit={handleFollowupSubmit} className="space-y-4">
               <textarea
                 value={newFollowup.message}
-                onChange={(e) =>
-                  setNewFollowup({ ...newFollowup, message: e.target.value })
-                }
+                onChange={(e) => setNewFollowup({ ...newFollowup, message: e.target.value })}
                 placeholder="Follow-up message"
                 className="w-full p-2 border rounded"
                 rows={3}

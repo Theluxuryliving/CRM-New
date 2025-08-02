@@ -1,8 +1,8 @@
 // 📁 File: src/pages/LeadForm.jsx
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import axiosInstance from '../utils/axios';
 
 const COUNTRIES = [
   'Pakistan', 'UAE', 'Saudi Arabia', 'Qatar', 'Bahrain', 'Oman', 'Kuwait', 'UK', 'USA', 'Australia', 'Europe', 'Japan', 'China', 'South Korea'
@@ -43,25 +43,19 @@ const AddLead = () => {
   });
 
   useEffect(() => {
-    axios.get('/api/projects', {
-      headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-    }).then(res => {
-      if (Array.isArray(res.data)) setProjects(res.data);
-      else setProjects([]);
-    }).catch(err => {
-      console.error('❌ Error fetching projects:', err);
-      setProjects([]);
-    });
+    axiosInstance.get('/projects')
+      .then(res => setProjects(Array.isArray(res.data) ? res.data : []))
+      .catch(err => {
+        console.error('❌ Error fetching projects:', err);
+        setProjects([]);
+      });
 
-    axios.get('/api/users/agents', {
-      headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-    }).then(res => {
-      if (Array.isArray(res.data)) setAgents(res.data);
-      else setAgents([]);
-    }).catch(err => {
-      console.error('❌ Error fetching agents:', err);
-      setAgents([]);
-    });
+    axiosInstance.get('/users/agents')
+      .then(res => setAgents(Array.isArray(res.data) ? res.data : []))
+      .catch(err => {
+        console.error('❌ Error fetching agents:', err);
+        setAgents([]);
+      });
   }, []);
 
   const handleChange = (key, value) => {
@@ -69,8 +63,7 @@ const AddLead = () => {
     if (key === 'assignTo') {
       const input = value.toLowerCase();
       const matches = Array.isArray(agents) ? agents.filter(a =>
-        a.name.toLowerCase().includes(input) ||
-        a.id.toString() === input
+        a.name.toLowerCase().includes(input) || a.id.toString() === input
       ) : [];
       setSuggestions(matches);
     }
@@ -78,10 +71,11 @@ const AddLead = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
     const payload = {
       ...form,
       city: form.country === 'Pakistan' ? form.city : form.cityOther,
-      areaInterestedIn: form.area === 'Other' ? form.areaOther : form.area,
+      areaInterestedIn: form.area === 'Other' || form.area === 'Others' ? form.areaOther : form.area,
       planInterestedIn: form.plan,
       propertyType: form.propertyType === 'Other' ? form.propertyTypeOther : form.propertyType,
       projectId: form.projectId ? parseInt(form.projectId) : null,
@@ -92,9 +86,7 @@ const AddLead = () => {
     };
 
     try {
-      await axios.post('/api/leads', payload, {
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-      });
+      await axiosInstance.post('/leads', payload);
       alert('✅ Lead added successfully');
       navigate('/leads');
     } catch (err) {
@@ -120,7 +112,7 @@ const AddLead = () => {
 
         {form.country === 'Pakistan' ? (
           <select value={form.city} onChange={e => handleChange('city', e.target.value)} className="border p-2 rounded">
-            {[...new Set(['Lahore', 'Karachi', 'Islamabad', 'Faisalabad', 'Multan', 'Rawalpindi', 'Peshawar', 'Quetta', 'Gujranwala', 'Hyderabad', 'Sialkot', 'Bahawalpur', 'Sargodha', 'Sukkur', 'Abbottabad', 'Mardan', 'Sahiwal', 'Okara', 'Dera Ghazi Khan', 'Other'])].map(city => (
+            {['Lahore', 'Karachi', 'Islamabad', 'Faisalabad', 'Multan', 'Rawalpindi', 'Peshawar', 'Quetta', 'Gujranwala', 'Hyderabad', 'Sialkot', 'Bahawalpur', 'Sargodha', 'Sukkur', 'Abbottabad', 'Mardan', 'Sahiwal', 'Okara', 'Dera Ghazi Khan', 'Other'].map(city => (
               <option key={city} value={city}>{city}</option>
             ))}
           </select>

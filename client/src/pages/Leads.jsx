@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
 import { useAuth } from '../contexts/AuthContext';
 import { Link } from 'react-router-dom';
 import Papa from 'papaparse';
 import * as XLSX from 'xlsx';
+import axiosInstance from '../utils/axios'; // ✅ Custom axios instance
 
 const Leads = () => {
   const { role } = useAuth();
@@ -23,14 +23,9 @@ const Leads = () => {
     const fetchLeads = async () => {
       try {
         setLoading(true);
-        const res = await axios.get('/api/leads', {
-          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
-          params: { ...filters, page },
-        });
-
+        const res = await axiosInstance.get('/leads', { params: { ...filters, page } });
         const items = Array.isArray(res.data.items) ? res.data.items : [];
         const pages = typeof res.data.totalPages === 'number' ? res.data.totalPages : 1;
-
         setLeads(items);
         setTotalPages(pages);
       } catch (err) {
@@ -47,9 +42,7 @@ const Leads = () => {
   const handleDelete = async (id) => {
     if (!window.confirm('Are you sure you want to delete this lead?')) return;
     try {
-      await axios.delete(`/api/leads/${id}`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
-      });
+      await axiosInstance.delete(`/leads/${id}`);
       setLeads(prev => prev.filter(l => l.id !== id));
     } catch (err) {
       console.error('❌ Error deleting lead:', err);
@@ -81,9 +74,7 @@ const Leads = () => {
 
   const handleImport = async () => {
     try {
-      const res = await axios.post('/api/leads/import', importData, {
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
-      });
+      const res = await axiosInstance.post('/leads/import', importData);
       alert(res.data.message);
       setImportErrors(Array.isArray(res.data.errors) ? res.data.errors : []);
       setImportData([]);

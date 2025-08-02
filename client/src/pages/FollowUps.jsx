@@ -1,13 +1,12 @@
 // 📁 File: src/pages/Followups.jsx
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
 import { useAuth } from '../contexts/AuthContext';
+import axiosInstance from '../utils/axios';
 
 const Followups = () => {
   const { role } = useAuth();
   const [followups, setFollowups] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [showLogs, setShowLogs] = useState(false);
   const [logs, setLogs] = useState({});
   const [filters, setFilters] = useState({ status: '', from: '', to: '', agentId: '' });
 
@@ -15,10 +14,7 @@ const Followups = () => {
     const fetchFollowups = async () => {
       try {
         setLoading(true);
-        const res = await axios.get('/api/followups', {
-          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
-          params: filters
-        });
+        const res = await axiosInstance.get('/followups', { params: filters });
         setFollowups(Array.isArray(res.data) ? res.data : []);
       } catch (err) {
         console.error('❌ Failed to fetch followups:', err);
@@ -32,9 +28,7 @@ const Followups = () => {
 
   const toggleStatus = async (id, newStatus) => {
     try {
-      const res = await axios.patch(`/api/followups/${id}/status`, { status: newStatus }, {
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-      });
+      const res = await axiosInstance.patch(`/followups/${id}/status`, { status: newStatus });
       setFollowups(f => f.map(fu => fu.id === id ? res.data : fu));
     } catch (err) {
       console.error('❌ Status update failed:', err);
@@ -47,9 +41,7 @@ const Followups = () => {
       return;
     }
     try {
-      const res = await axios.get(`/api/followups/${followupId}/logs`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-      });
+      const res = await axiosInstance.get(`/followups/${followupId}/logs`);
       setLogs(prev => ({ ...prev, [followupId]: Array.isArray(res.data) ? res.data : [] }));
     } catch (err) {
       console.error('❌ Failed to fetch logs:', err);
@@ -101,7 +93,9 @@ const Followups = () => {
                       <option value="DONE">✅ Done</option>
                       <option value="SKIPPED">🚫 Skipped</option>
                     </select>
-                    <button onClick={() => fetchLogs(fu.id)} className="text-blue-600 hover:underline text-sm">{logs[fu.id] ? 'Hide Log' : 'View Log'}</button>
+                    <button onClick={() => fetchLogs(fu.id)} className="text-blue-600 hover:underline text-sm">
+                      {logs[fu.id] ? 'Hide Log' : 'View Log'}
+                    </button>
                   </div>
                 </div>
                 {logs[fu.id] && (
