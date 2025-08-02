@@ -25,13 +25,18 @@ const Leads = () => {
         setLoading(true);
         const res = await axios.get('/api/leads', {
           headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
-          params: { ...filters, page }
+          params: { ...filters, page },
         });
-        setLeads(res.data.items);
-        setTotalPages(res.data.totalPages || 1);
+
+        const items = Array.isArray(res.data.items) ? res.data.items : [];
+        const pages = typeof res.data.totalPages === 'number' ? res.data.totalPages : 1;
+
+        setLeads(items);
+        setTotalPages(pages);
       } catch (err) {
         console.error('❌ Error fetching leads:', err);
         setLeads([]);
+        setTotalPages(1);
       } finally {
         setLoading(false);
       }
@@ -45,7 +50,7 @@ const Leads = () => {
       await axios.delete(`/api/leads/${id}`, {
         headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
       });
-      setLeads(leads.filter(l => l.id !== id));
+      setLeads(prev => prev.filter(l => l.id !== id));
     } catch (err) {
       console.error('❌ Error deleting lead:', err);
     }
@@ -77,10 +82,10 @@ const Leads = () => {
   const handleImport = async () => {
     try {
       const res = await axios.post('/api/leads/import', importData, {
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
       });
       alert(res.data.message);
-      setImportErrors(res.data.errors || []);
+      setImportErrors(Array.isArray(res.data.errors) ? res.data.errors : []);
       setImportData([]);
     } catch (err) {
       alert('❌ Import failed.');
@@ -106,14 +111,14 @@ const Leads = () => {
         </div>
       </div>
 
-      {importData.length > 0 && (
+      {Array.isArray(importData) && importData.length > 0 && (
         <div className="border p-4 rounded bg-white shadow-md">
           <h3 className="text-lg font-semibold mb-2">📤 Preview Import</h3>
           <div className="overflow-x-auto">
             <table className="min-w-full border text-sm">
               <thead>
                 <tr>
-                  {Object.keys(importData[0]).map(key => (
+                  {Object.keys(importData[0] || {}).map(key => (
                     <th key={key} className="border p-1">{key}</th>
                   ))}
                   <th className="border p-1">Error</th>
@@ -154,7 +159,6 @@ const Leads = () => {
           onChange={e => setFilters(f => ({ ...f, search: e.target.value }))}
           className="border p-2 rounded w-full sm:w-64"
         />
-
         <select value={filters.status} onChange={e => setFilters(f => ({ ...f, status: e.target.value }))} className="border p-2 rounded">
           <option value="">All Statuses</option>
           <option value="NEW">New</option>
@@ -163,13 +167,11 @@ const Leads = () => {
           <option value="CLOSED_WON">Closed Won</option>
           <option value="CLOSED_LOST">Closed Lost</option>
         </select>
-
         <select value={filters.projectId} onChange={e => setFilters(f => ({ ...f, projectId: e.target.value }))} className="border p-2 rounded">
           <option value="">All Projects</option>
           <option value="proj1">Project 1</option>
           <option value="proj2">Project 2</option>
         </select>
-
         {canSeeAgents && (
           <select value={filters.agentId} onChange={e => setFilters(f => ({ ...f, agentId: e.target.value }))} className="border p-2 rounded">
             <option value="">All Agents</option>
