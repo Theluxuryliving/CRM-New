@@ -19,7 +19,7 @@ const Followups = () => {
           headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
           params: filters
         });
-        setFollowups(res.data);
+        setFollowups(Array.isArray(res.data) ? res.data : []);
       } catch (err) {
         console.error('❌ Failed to fetch followups:', err);
         setFollowups([]);
@@ -50,7 +50,7 @@ const Followups = () => {
       const res = await axios.get(`/api/followups/${followupId}/logs`, {
         headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
       });
-      setLogs(prev => ({ ...prev, [followupId]: res.data }));
+      setLogs(prev => ({ ...prev, [followupId]: Array.isArray(res.data) ? res.data : [] }));
     } catch (err) {
       console.error('❌ Failed to fetch logs:', err);
     }

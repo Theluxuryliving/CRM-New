@@ -45,21 +45,33 @@ const AddLead = () => {
   useEffect(() => {
     axios.get('/api/projects', {
       headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-    }).then(res => setProjects(res.data)).catch(err => console.error(err));
+    }).then(res => {
+      if (Array.isArray(res.data)) setProjects(res.data);
+      else setProjects([]);
+    }).catch(err => {
+      console.error('❌ Error fetching projects:', err);
+      setProjects([]);
+    });
 
     axios.get('/api/users/agents', {
       headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-    }).then(res => setAgents(res.data)).catch(err => console.error(err));
+    }).then(res => {
+      if (Array.isArray(res.data)) setAgents(res.data);
+      else setAgents([]);
+    }).catch(err => {
+      console.error('❌ Error fetching agents:', err);
+      setAgents([]);
+    });
   }, []);
 
   const handleChange = (key, value) => {
     setForm(prev => ({ ...prev, [key]: value }));
     if (key === 'assignTo') {
       const input = value.toLowerCase();
-      const matches = agents.filter(a =>
+      const matches = Array.isArray(agents) ? agents.filter(a =>
         a.name.toLowerCase().includes(input) ||
         a.id.toString() === input
-      );
+      ) : [];
       setSuggestions(matches);
     }
   };
@@ -78,7 +90,6 @@ const AddLead = () => {
       leadSource: form.source === 'Other' ? form.sourceOther : form.source,
       assignedToId: form.assignTo || undefined
     };
-    console.log('📤 Submitting lead:', payload);
 
     try {
       await axios.post('/api/leads', payload, {
@@ -96,7 +107,6 @@ const AddLead = () => {
     <div className="max-w-4xl mx-auto p-6">
       <h2 className="text-2xl font-bold mb-4">➕ Add New Lead</h2>
       <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
-
         <input type="text" placeholder="Name" value={form.name} onChange={e => handleChange('name', e.target.value)} required className="border p-2 rounded" />
         <input type="text" placeholder="Phone" value={form.phone} onChange={e => handleChange('phone', e.target.value)} required className="border p-2 rounded" />
         <input type="email" placeholder="Email" value={form.email} onChange={e => handleChange('email', e.target.value)} className="border p-2 rounded" />
@@ -139,7 +149,7 @@ const AddLead = () => {
 
         <select value={form.projectId} onChange={e => handleChange('projectId', e.target.value)} className="border p-2 rounded">
           <option value="">Select Project</option>
-          {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+          {Array.isArray(projects) && projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
         </select>
 
         <div className="col-span-1 md:col-span-2">

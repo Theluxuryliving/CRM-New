@@ -25,7 +25,10 @@ const LeadDetail = () => {
       });
 
     axios.get(`/api/followups/lead/${id}`, { headers })
-      .then((res) => setFollowups(res.data))
+      .then((res) => {
+        if (Array.isArray(res.data)) setFollowups(res.data);
+        else setFollowups([]);
+      })
       .catch((err) => console.error("❌ Failed to fetch followups:", err));
   }, [id]);
 
@@ -41,7 +44,8 @@ const LeadDetail = () => {
       setShowModal(false);
 
       const res = await axios.get(`/api/followups/lead/${id}`, { headers });
-      setFollowups(res.data);
+      if (Array.isArray(res.data)) setFollowups(res.data);
+      else setFollowups([]);
     } catch (err) {
       console.error("❌ Failed to submit follow-up:", err);
     }
