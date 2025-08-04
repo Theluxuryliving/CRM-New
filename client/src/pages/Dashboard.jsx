@@ -1,6 +1,6 @@
 // 📁 File: src/pages/Dashboard.jsx
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
+import axiosInstance from '../utils/axios';
 import { useAuth } from '../contexts/AuthContext';
 import { Bar, Line, Pie } from 'react-chartjs-2';
 import html2pdf from 'html2pdf.js/dist/html2pdf.min.js';
@@ -37,15 +37,15 @@ const Dashboard = () => {
       try {
         setLoading(true);
         const [leadsRes, summaryRes, followupsRes] = await Promise.all([
-          axios.get(`${import.meta.env.VITE_API_BASE_URL}/api/leads`, {
+          axiosInstance.get(`${import.meta.env.VITE_API_BASE_URL}/api/leads`, {
             headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
             params: { timeFrame, ...filters },
           }),
-          axios.get(`${import.meta.env.VITE_API_BASE_URL}/api/leads/summary`, {
+          axiosInstance.get(`${import.meta.env.VITE_API_BASE_URL}/api/leads/summary`, {
             headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
             params: { timeFrame },
           }),
-          axios.get(`${import.meta.env.VITE_API_BASE_URL}/api/followups`, {
+          axiosInstance.get(`${import.meta.env.VITE_API_BASE_URL}/api/followups`, {
             headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
             params: { status: 'PENDING' },
           }),
