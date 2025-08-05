@@ -15,8 +15,11 @@ model User {
   role      Role
   createdAt DateTime @default(now())
 
-  // Leads created or assigned
-  leads        Lead[]        @relation("UserLeads")
+  // 📌 Lead relations
+  leads        Lead[] @relation("UserLeads") // Assigned leads
+  createdLeads Lead[] @relation("CreatedLeads") // Leads created by this user
+
+  // 📌 Follow-up relations
   followups    FollowUp[]
   followUpLogs FollowUpLog[] @relation("UserToFollowUpLogs")
 
@@ -73,6 +76,7 @@ model Lead {
   status           LeadStatus @default(NEW)
   assignedTo       User       @relation("UserLeads", fields: [assignedToId], references: [id])
   assignedToId     Int
+  createdBy        User       @relation("CreatedLeads", fields: [createdById], references: [id])
   createdById      Int
   createdAt        DateTime   @default(now())
   followups        FollowUp[]
