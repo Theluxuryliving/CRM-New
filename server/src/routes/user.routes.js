@@ -5,7 +5,7 @@ const prisma = require('../prisma'); // adjust if needed
 
 router.use(protect);
 
-// ✅ Get agents for lead assignment
+// ✅ Get all users, optionally filtered by role
 router.get('/', async (req, res) => {
   try {
     const role = req.query.role;
@@ -17,6 +17,20 @@ router.get('/', async (req, res) => {
   } catch (err) {
     console.error('❌ Failed to fetch users:', err);
     res.status(500).json({ message: 'Failed to fetch users' });
+  }
+});
+
+// ✅ NEW: Get only agents (GET /api/users/agents)
+router.get('/agents', async (req, res) => {
+  try {
+    const agents = await prisma.user.findMany({
+      where: { role: 'AGENT' },
+      select: { id: true, name: true, email: true }
+    });
+    res.json(agents);
+  } catch (err) {
+    console.error('❌ Failed to fetch agents:', err);
+    res.status(500).json({ message: 'Failed to fetch agents' });
   }
 });
 
