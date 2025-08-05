@@ -27,7 +27,7 @@ const PLANS = ['Offplan', 'Ready to Move', 'Tenant', 'To Let', 'To Sell'];
 const PURCHASE_TIMES = ['Immediately', '3 Months', '6 Months', '1 Year'];
 
 const AddLead = () => {
-  const { role } = useAuth();
+  const { role, user } = useAuth();
   const navigate = useNavigate();
   const [projects, setProjects] = useState([]);
   const [agents, setAgents] = useState([]);
@@ -51,17 +51,23 @@ const AddLead = () => {
       });
 
     axiosInstance.get('/users/agents')
-      .then(res => setAgents(Array.isArray(res.data) ? res.data : []))
+      .then(res => {
+        setAgents(Array.isArray(res.data) ? res.data : []);
+        // Auto-assign self if role is AGENT
+        if (role === 'AGENT' && user?.id) {
+          setForm(prev => ({ ...prev, assignTo: user.id }));
+        }
+      })
       .catch(err => {
         console.error('❌ Error fetching agents:', err);
         setAgents([]);
       });
-  }, []);
+  }, [role, user]);
 
   const handleChange = (key, value) => {
     setForm(prev => ({ ...prev, [key]: value }));
     if (key === 'assignTo') {
-      const input = value.toLowerCase();
+      const input = value.toString().toLowerCase();
       const matches = Array.isArray(agents) ? agents.filter(a =>
         a.name.toLowerCase().includes(input) || a.id.toString() === input
       ) : [];
@@ -69,8 +75,22 @@ const AddLead = () => {
     }
   };
 
+  const validateForm = () => {
+    if (!form.name || !form.phone) return 'Name and Phone are required.';
+    if (form.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) return 'Invalid email format.';
+    if (form.propertyType === 'Other' && !form.propertyTypeOther) return 'Please specify other property type.';
+    if (form.source === 'Other' && !form.sourceOther) return 'Please specify other lead source.';
+    return null;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    const error = validateForm();
+    if (error) {
+      alert(`⚠️ ${error}`);
+      return;
+    }
 
     const payload = {
       ...form,
@@ -84,6 +104,8 @@ const AddLead = () => {
       leadSource: form.source === 'Other' ? form.sourceOther : form.source,
       assignedToId: form.assignTo || undefined
     };
+
+    console.log('🚀 Lead Payload to be sent:', payload);
 
     try {
       await axiosInstance.post('/leads', payload);
