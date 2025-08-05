@@ -1,7 +1,6 @@
-// 📁 server/src/routes/followup.routes.js
+// ✅ server/src/routes/followup.routes.js
 const express = require("express");
 const router = express.Router();
-
 const {
   createFollowup,
   getFollowupsForLead,
@@ -13,10 +12,9 @@ const {
 
 const { protect, allowRoles } = require("../middlewares/auth.middleware");
 
-// ✅ Middleware to protect all follow-up routes
 router.use(protect);
 
-// ➕ Add a follow-up
+// ➕ Create
 router.post(
   "/",
   allowRoles("AGENT", "MANAGER", "SR_MANAGER", "DIRECTOR", "CCO", "ADMIN"),
@@ -26,28 +24,28 @@ router.post(
 // 📋 Get all follow-ups for a lead
 router.get("/lead/:leadId", getFollowupsForLead);
 
-// 📄 Get all follow-ups with filters
+// 📄 Get all (role + filter)
 router.get(
   "/",
   allowRoles("AGENT", "MANAGER", "SR_MANAGER", "DIRECTOR", "CCO", "ADMIN"),
   getAllFollowups
 );
 
-// 🔄 Toggle status
+// 🔁 Toggle follow-up status
 router.patch(
   "/:id/status",
   allowRoles("AGENT", "MANAGER", "SR_MANAGER", "DIRECTOR", "CCO", "ADMIN"),
   toggleFollowupStatus
 );
 
-// ✏️ Update follow-up
+// ✏️ Update
 router.put(
   "/:id",
   allowRoles("AGENT", "MANAGER", "SR_MANAGER", "DIRECTOR", "CCO", "ADMIN"),
   updateFollowup
 );
 
-// ❌ Delete follow-up
+// ❌ Delete
 router.delete(
   "/:id",
   allowRoles("MANAGER", "SR_MANAGER", "DIRECTOR", "CCO", "ADMIN"),
