@@ -59,7 +59,7 @@ const getLeads = async (req, res) => {
   }
 };
 
-// 👁️ GET single lead (enhanced)
+// 👁️ GET single lead (✅ includes followUps now)
 const getLeadById = async (req, res) => {
   const { id } = req.params;
   const { role, userId } = req.user;
@@ -80,17 +80,16 @@ const getLeadById = async (req, res) => {
     const lead = await prisma.lead.findFirst({
       where,
       include: {
-        assignedTo: { select: { id: true, name: true, role: true, email: true } },
+        assignedTo: { select: { id: true, name: true, role: true } },
         project: { select: { id: true, name: true } },
-        followups: {
-          orderBy: { createdAt: 'desc' },
+        followUps: {
           select: {
             id: true,
-            comment: true,
-            status: true,
-            date: true,
+            message: true,
+            nextFollowupDate: true,
             createdAt: true
-          }
+          },
+          orderBy: { createdAt: 'desc' }
         }
       }
     });

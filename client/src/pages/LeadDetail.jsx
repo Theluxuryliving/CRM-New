@@ -1,9 +1,16 @@
-// 📁 File: src/pages/LeadDetail.jsx
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import axiosInstance from '../utils/axios';
 
-const STAGES = ['NEW', 'CONTACTED', 'FOLLOWED_UP', 'MEETING_DONE', 'NEGOTIATION', 'CLOSED_WON', 'CLOSED_LOST'];
+const statusOptions = [
+  'NEW',
+  'CONTACTED',
+  'MEETING_SCHEDULED',
+  'SITE_VISITED',
+  'NEGOTIATION',
+  'CLOSED_WON',
+  'CLOSED_LOST'
+];
 
 const LeadDetail = () => {
   const { id } = useParams();
@@ -11,7 +18,6 @@ const LeadDetail = () => {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [newFollowup, setNewFollowup] = useState({ message: '', nextFollowupDate: '' });
-  const [updatingStatus, setUpdatingStatus] = useState(false);
 
   useEffect(() => {
     fetchLead();
@@ -34,12 +40,12 @@ const LeadDetail = () => {
       await axiosInstance.post(`/followups`, {
         leadId: id,
         message: newFollowup.message,
-        nextFollowupDate: newFollowup.nextFollowupDate,
+        nextFollowupDate: newFollowup.nextFollowupDate
       });
       alert('✅ Follow-up added!');
       setShowModal(false);
       setNewFollowup({ message: '', nextFollowupDate: '' });
-      fetchLead();
+      fetchLead(); // Refresh
     } catch (err) {
       console.error('❌ Failed to add follow-up:', err);
     }
@@ -47,14 +53,11 @@ const LeadDetail = () => {
 
   const handleStatusChange = async (e) => {
     const newStatus = e.target.value;
-    setUpdatingStatus(true);
     try {
       await axiosInstance.put(`/leads/${id}`, { status: newStatus });
-      await fetchLead();
+      setLead(prev => ({ ...prev, status: newStatus }));
     } catch (err) {
       console.error('❌ Failed to update status:', err);
-    } finally {
-      setUpdatingStatus(false);
     }
   };
 
@@ -62,10 +65,10 @@ const LeadDetail = () => {
   if (!lead) return <p className="p-4 text-red-500">❌ Lead not found</p>;
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-6 space-y-4">
       <h2 className="text-2xl font-bold">👤 Lead Detail</h2>
 
-      <div className="border p-4 rounded bg-white shadow grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="border p-4 rounded bg-white shadow space-y-2">
         <p><strong>Name:</strong> {lead.name}</p>
         <p><strong>Phone:</strong> {lead.phone}</p>
         <p><strong>Email:</strong> {lead.email}</p>
@@ -75,25 +78,26 @@ const LeadDetail = () => {
         <p><strong>Plan Interested In:</strong> {lead.planInterestedIn}</p>
         <p><strong>Property Type:</strong> {lead.propertyType}</p>
         <p><strong>Project:</strong> {lead.project?.name || 'N/A'}</p>
-        <p><strong>Budget:</strong> {lead.budget?.toLocaleString()} PKR</p>
-        <p><strong>Purchase Timeline:</strong> {lead.planToPurchase}</p>
+        <p><strong>Budget:</strong> Rs. {lead.budget?.toLocaleString()}</p>
+        <p><strong>Plan to Purchase:</strong> {lead.planToPurchase}</p>
         <p><strong>Lead Source:</strong> {lead.leadSource}</p>
-        <div className="flex items-center gap-3">
-          <strong>Status:</strong>
-          <span className="px-2 py-1 rounded text-white text-sm bg-green-600">{lead.status}</span>
+        <p><strong>Agent:</strong> {lead.assignedTo?.name || 'Unassigned'}</p>
+
+        <div className="flex items-center gap-3 mt-4">
+          <span className="px-3 py-1 text-sm rounded-full font-semibold bg-blue-100 text-blue-700">
+            🎯 Stage: {lead.status}
+          </span>
+
           <select
             value={lead.status}
             onChange={handleStatusChange}
-            disabled={updatingStatus}
-            className="ml-2 border p-1 rounded"
+            className="border px-3 py-1 rounded"
           >
-            {STAGES.map(stage => (
-              <option key={stage} value={stage}>{stage}</option>
+            {statusOptions.map(status => (
+              <option key={status} value={status}>{status}</option>
             ))}
           </select>
         </div>
-        <p><strong>Assigned Agent:</strong> {lead.assignedTo?.name || 'N/A'}</p>
-        <p><strong>Created:</strong> {new Date(lead.createdAt).toLocaleString()}</p>
       </div>
 
       <button
@@ -103,31 +107,36 @@ const LeadDetail = () => {
         ➕ Add Follow-up
       </button>
 
-      <div className="mt-6">
-        <h3 className="text-xl font-bold mb-2">📌 Follow-ups</h3>
-        {lead.followups?.length > 0 ? (
-          <ul className="space-y-3">
-            {lead.followups.map((f, i) => (
-              <li key={i} className="border rounded p-3 bg-gray-50">
-                <p className="text-sm text-gray-700 mb-1"><strong>Next:</strong> {f.nextFollowupDate}</p>
-                <p>{f.message}</p>
-                <p className="text-xs text-gray-500 mt-1">🕓 {new Date(f.createdAt).toLocaleString()}</p>
+      {/* Follow-ups */}
+      <div className="bg-white border rounded p-4 shadow">
+        <h3 className="text-lg font-semibold mb-2">📞 Follow-ups</h3>
+        {lead.followUps?.length > 0 ? (
+          <ul className="space-y-2">
+            {lead.followUps.map((fup) => (
+              <li key={fup.id} className="border p-2 rounded">
+                <p className="text-sm text-gray-700">{fup.message}</p>
+                <p className="text-xs text-gray-500 mt-1">
+                  Next Follow-up: {new Date(fup.nextFollowupDate).toLocaleDateString()} | Added: {new Date(fup.createdAt).toLocaleString()}
+                </p>
               </li>
             ))}
           </ul>
         ) : (
-          <p className="text-gray-500 italic">No follow-ups yet.</p>
+          <p className="text-sm text-gray-500">No follow-ups yet.</p>
         )}
       </div>
 
+      {/* Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
-          <div className="bg-white rounded-lg p-6 w-full max-w-lg shadow-2xl z-[60]">
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-[100] flex items-center justify-center">
+          <div className="bg-white rounded-lg p-6 w-full max-w-lg shadow-2xl z-[101]">
             <h2 className="text-xl font-bold mb-4">➕ New Follow-up</h2>
             <form onSubmit={handleFollowupSubmit} className="space-y-4">
               <textarea
                 value={newFollowup.message}
-                onChange={(e) => setNewFollowup({ ...newFollowup, message: e.target.value })}
+                onChange={(e) =>
+                  setNewFollowup({ ...newFollowup, message: e.target.value })
+                }
                 placeholder="Follow-up message"
                 className="w-full p-2 border rounded"
                 rows={3}
@@ -136,7 +145,12 @@ const LeadDetail = () => {
               <input
                 type="date"
                 value={newFollowup.nextFollowupDate}
-                onChange={(e) => setNewFollowup({ ...newFollowup, nextFollowupDate: e.target.value })}
+                onChange={(e) =>
+                  setNewFollowup({
+                    ...newFollowup,
+                    nextFollowupDate: e.target.value,
+                  })
+                }
                 className="w-full p-2 border rounded"
                 required
               />
