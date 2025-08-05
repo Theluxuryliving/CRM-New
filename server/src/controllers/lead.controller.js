@@ -59,7 +59,7 @@ const getLeads = async (req, res) => {
   }
 };
 
-// 👁️ GET lead by ID
+// 👁️ GET single lead
 const getLeadById = async (req, res) => {
   const { id } = req.params;
   const { role, userId } = req.user;
@@ -96,7 +96,7 @@ const getLeadById = async (req, res) => {
   }
 };
 
-// ➕ CREATE Lead
+// ➕ CREATE lead
 const createLead = async (req, res) => {
   try {
     const data = req.body;
@@ -127,7 +127,7 @@ const createLead = async (req, res) => {
         leadSource: data.leadSource,
         notes: data.notes || '',
         status: data.status || 'NEW',
-        assignedToId: data.assignedToId || req.user.userId,
+        assignedToId: data.assignedToId ? parseInt(data.assignedToId) : req.user.userId,
         createdById: req.user.userId
       }
     });
@@ -139,7 +139,7 @@ const createLead = async (req, res) => {
   }
 };
 
-// 📥 IMPORT Leads
+// 📥 IMPORT leads (CSV/XLSX/JSON array)
 const importLeads = async (req, res) => {
   try {
     let leads = [];
@@ -224,7 +224,7 @@ const importLeads = async (req, res) => {
   }
 };
 
-// ✏️ UPDATE
+// ✏️ UPDATE lead
 const updateLead = async (req, res) => {
   try {
     const lead = await prisma.lead.update({
@@ -238,7 +238,7 @@ const updateLead = async (req, res) => {
   }
 };
 
-// ❌ DELETE
+// ❌ DELETE lead
 const deleteLead = async (req, res) => {
   try {
     await prisma.lead.delete({ where: { id: parseInt(req.params.id) } });
@@ -249,13 +249,13 @@ const deleteLead = async (req, res) => {
   }
 };
 
-// 🔁 REASSIGN
+// 🔁 REASSIGN lead
 const reassignLead = async (req, res) => {
   const { assignedToId } = req.body;
   try {
     const updated = await prisma.lead.update({
       where: { id: parseInt(req.params.id) },
-      data: { assignedToId }
+      data: { assignedToId: parseInt(assignedToId) }
     });
     res.json(updated);
   } catch (err) {
