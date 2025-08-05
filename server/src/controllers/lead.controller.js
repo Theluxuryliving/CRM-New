@@ -1,3 +1,4 @@
+// 📁 server/controllers/lead.controller.js
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 const { parse } = require('csv-parse/sync');
@@ -59,44 +60,33 @@ const getLeads = async (req, res) => {
   }
 };
 
-// 👁️ GET single lead (✅ includes followUps now)
+// 👁️ GET single lead (🔧 fixed authorization + added followUps)
 const getLeadById = async (req, res) => {
   const { id } = req.params;
   const { role, userId } = req.user;
 
   try {
-    const where = { id: parseInt(id) };
-
-    if (role === 'AGENT') {
-      where.assignedToId = userId;
-    } else if (role === 'MANAGER') {
-      where.OR = [{ assignedTo: { managerId: userId } }, { assignedToId: userId }];
-    } else if (role === 'SR_MANAGER') {
-      where.OR = [{ assignedTo: { srManagerId: userId } }, { assignedToId: userId }];
-    } else if (role === 'DIRECTOR') {
-      where.OR = [{ assignedTo: { directorId: userId } }, { assignedToId: userId }];
-    }
-
     const lead = await prisma.lead.findFirst({
-      where,
+      where: { id: parseInt(id) },
       include: {
-        assignedTo: { select: { id: true, name: true, role: true } },
-        project: { select: { id: true, name: true } },
-        followUps: {
+        assignedTo: {
           select: {
-            id: true,
-            message: true,
-            nextFollowupDate: true,
-            createdAt: true
-          },
-          orderBy: { createdAt: 'desc' }
-        }
+            id: true, name: true, role: true,
+            managerId: true, srManagerId: true, directorId: true
+          }
+        },
+        project: { select: { id: true, name: true } },
+        followUps: { orderBy: { createdAt: 'desc' } }
       }
     });
 
-    if (!lead) {
-      return res.status(404).json({ message: 'Lead not found or unauthorized' });
-    }
+    if (!lead) return res.status(404).json({ message: 'Lead not found' });
+
+    const agent = lead.assignedTo;
+    if (role === 'AGENT' && lead.assignedToId !== userId) return res.status(403).json({ message: 'Not authorized' });
+    if (role === 'MANAGER' && agent?.managerId !== userId && lead.assignedToId !== userId) return res.status(403).json({ message: 'Not authorized' });
+    if (role === 'SR_MANAGER' && agent?.srManagerId !== userId && lead.assignedToId !== userId) return res.status(403).json({ message: 'Not authorized' });
+    if (role === 'DIRECTOR' && agent?.directorId !== userId && lead.assignedToId !== userId) return res.status(403).json({ message: 'Not authorized' });
 
     res.json(lead);
   } catch (error) {
@@ -148,7 +138,47 @@ const createLead = async (req, res) => {
   }
 };
 
-// 📥 IMPORT leads (CSV/XLSX/JSON array)
+// ✏️ UPDATE lead (status/stage change supported)
+const updateLead = async (req, res) => {
+  try {
+    const lead = await prisma.lead.update({
+      where: { id: parseInt(req.params.id) },
+      data: req.body
+    });
+    res.json(lead);
+  } catch (err) {
+    console.error("❌ Update failed:", err);
+    res.status(500).json({ message: 'Update failed' });
+  }
+};
+
+// ❌ DELETE lead
+const deleteLead = async (req, res) => {
+  try {
+    await prisma.lead.delete({ where: { id: parseInt(req.params.id) } });
+    res.json({ message: 'Deleted' });
+  } catch (err) {
+    console.error("❌ Delete failed:", err);
+    res.status(500).json({ message: 'Delete failed' });
+  }
+};
+
+// 🔁 REASSIGN lead
+const reassignLead = async (req, res) => {
+  const { assignedToId } = req.body;
+  try {
+    const updated = await prisma.lead.update({
+      where: { id: parseInt(req.params.id) },
+      data: { assignedToId: parseInt(assignedToId) }
+    });
+    res.json(updated);
+  } catch (err) {
+    console.error("❌ Reassignment failed:", err);
+    res.status(500).json({ message: 'Reassignment failed' });
+  }
+};
+
+// 📥 IMPORT leads (unchanged)
 const importLeads = async (req, res) => {
   try {
     let leads = [];
@@ -233,52 +263,12 @@ const importLeads = async (req, res) => {
   }
 };
 
-// ✏️ UPDATE lead
-const updateLead = async (req, res) => {
-  try {
-    const lead = await prisma.lead.update({
-      where: { id: parseInt(req.params.id) },
-      data: req.body
-    });
-    res.json(lead);
-  } catch (err) {
-    console.error("❌ Update failed:", err);
-    res.status(500).json({ message: 'Update failed' });
-  }
-};
-
-// ❌ DELETE lead
-const deleteLead = async (req, res) => {
-  try {
-    await prisma.lead.delete({ where: { id: parseInt(req.params.id) } });
-    res.json({ message: 'Deleted' });
-  } catch (err) {
-    console.error("❌ Delete failed:", err);
-    res.status(500).json({ message: 'Delete failed' });
-  }
-};
-
-// 🔁 REASSIGN lead
-const reassignLead = async (req, res) => {
-  const { assignedToId } = req.body;
-  try {
-    const updated = await prisma.lead.update({
-      where: { id: parseInt(req.params.id) },
-      data: { assignedToId: parseInt(assignedToId) }
-    });
-    res.json(updated);
-  } catch (err) {
-    console.error("❌ Reassignment failed:", err);
-    res.status(500).json({ message: 'Reassignment failed' });
-  }
-};
-
 module.exports = {
   getLeads,
   getLeadById,
   createLead,
-  importLeads,
   updateLead,
   deleteLead,
-  reassignLead
+  reassignLead,
+  importLeads
 };
