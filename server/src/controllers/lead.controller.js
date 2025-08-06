@@ -76,7 +76,7 @@ const getLeadById = async (req, res) => {
           }
         },
         project: { select: { id: true, name: true } },
-        followUps: { orderBy: { createdAt: 'desc' } }
+        followups: { orderBy: { createdAt: 'desc' } }
       }
     });
 
