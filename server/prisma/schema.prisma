@@ -16,8 +16,8 @@ model User {
   createdAt DateTime @default(now())
 
   // 📌 Lead relations
-  leads        Lead[] @relation("UserLeads") // Assigned leads
-  createdLeads Lead[] @relation("CreatedLeads") // Leads created by this user
+  leads        Lead[]    @relation("UserLeads")        // Assigned leads
+  createdLeads Lead[]    @relation("CreatedLeads")     // Leads created by this user
 
   // 📌 Follow-up relations
   followups    FollowUp[]
@@ -58,28 +58,28 @@ model Team {
 }
 
 model Lead {
-  id               Int        @id @default(autoincrement())
+  id               Int         @id @default(autoincrement())
   name             String
   phone            String
   email            String?
   country          String
   city             String
   areaInterestedIn String
-  planInterestedIn String // e.g. Offplan, Ready to Move
-  propertyType     String // Apartment, Townhouse, etc.
-  projectId        Int? // Optional — links to a Project
-  project          Project?   @relation(fields: [projectId], references: [id])
-  budget           Int // Stored in PKR (slider 1M - 500M)
-  planToPurchase   String // e.g. Immediately, 3 months
-  leadSource       String // Facebook, Instagram, etc.
+  planInterestedIn String       // e.g. Offplan, Ready to Move
+  propertyType     String       // Apartment, Townhouse, etc.
+  projectId        Int?         // Optional — links to a Project
+  project          Project?     @relation(fields: [projectId], references: [id])
+  budget           Int          // Stored in PKR (slider 1M - 500M)
+  planToPurchase   String       // e.g. Immediately, 3 months
+  leadSource       String       // Facebook, Instagram, etc.
   notes            String?
-  status           LeadStatus @default(NEW)
-  assignedTo       User       @relation("UserLeads", fields: [assignedToId], references: [id])
+  status           LeadStatus   @default(NEW)
+  assignedTo       User         @relation("UserLeads", fields: [assignedToId], references: [id])
   assignedToId     Int
-  createdBy        User       @relation("CreatedLeads", fields: [createdById], references: [id])
+  createdBy        User         @relation("CreatedLeads", fields: [createdById], references: [id])
   createdById      Int
-  createdAt        DateTime   @default(now())
-  followups        FollowUp[]
+  createdAt        DateTime     @default(now())
+  followups        FollowUp[]   // 🔥 Correct casing: lowercase f
 }
 
 model FollowUp {
@@ -105,13 +105,13 @@ model FollowUpLog {
 }
 
 model Project {
-  id              Int      @id @default(autoincrement())
+  id              Int       @id @default(autoincrement())
   name            String
-  type            String // Apartment, Townhouse, Commercial etc.
+  type            String     // Apartment, Townhouse, Commercial etc.
   priceRange      String
-  commissionType  String // Fixed or Percentage
+  commissionType  String     // Fixed or Percentage
   commissionValue String
-  createdAt       DateTime @default(now())
+  createdAt       DateTime   @default(now())
   leads           Lead[]
 }
 
