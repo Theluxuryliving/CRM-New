@@ -107,12 +107,12 @@ const LeadDetail = () => {
         ➕ Add Follow-up
       </button>
 
-      {/* Follow-ups */}
+      {/* 📞 Follow-ups */}
       <div className="bg-white border rounded p-4 shadow">
         <h3 className="text-lg font-semibold mb-2">📞 Follow-ups</h3>
-        {lead.followUps?.length > 0 ? (
+        {lead.followups?.length > 0 ? (
           <ul className="space-y-2">
-            {lead.followUps.map((fup) => (
+            {lead.followups.map((fup) => (
               <li key={fup.id} className="border p-2 rounded">
                 <p className="text-sm text-gray-700">{fup.message}</p>
                 <p className="text-xs text-gray-500 mt-1">
@@ -126,7 +126,7 @@ const LeadDetail = () => {
         )}
       </div>
 
-      {/* Modal */}
+      {/* 📝 Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-[100] flex items-center justify-center">
           <div className="bg-white rounded-lg p-6 w-full max-w-lg shadow-2xl z-[101]">
