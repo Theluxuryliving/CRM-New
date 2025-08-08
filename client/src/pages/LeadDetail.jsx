@@ -1,13 +1,17 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import axiosInstance from '../utils/axios';
+import FollowupModal from '../components/FollowUpModal';
+
 
 const statusOptions = [
   'NEW',
-  'CONTACTED',
-  'MEETING_SCHEDULED',
-  'SITE_VISITED',
-  'NEGOTIATION',
+  'INQUIRY',
+  'INFO_SHARED',
+  'MEETING_DONE',
+  'TOKEN_RECEIVED',
+  'DOWNPAYMENT',
+  'SPA',
   'CLOSED_WON',
   'CLOSED_LOST'
 ];

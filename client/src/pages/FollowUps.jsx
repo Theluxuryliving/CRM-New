@@ -1,126 +1,90 @@
-// 📁 File: src/pages/Followups.jsx
-import React, { useEffect, useState } from 'react';
-import { useAuth } from '../contexts/AuthContext';
-import axiosInstance from '../utils/axios';
+import React, { useEffect, useState } from "react";
+import axiosInstance from "../utils/axios";
+import { useAuth } from "../contexts/AuthContext";
 
-const Followups = () => {
-  const { role } = useAuth();
+const FollowUps = () => {
   const [followups, setFollowups] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [logs, setLogs] = useState({});
-  const [filters, setFilters] = useState({ status: '', from: '', to: '', agentId: '' });
+  const { isAuthenticated } = useAuth();
 
   useEffect(() => {
-    const fetchFollowups = async () => {
-      try {
-        setLoading(true);
-        const res = await axiosInstance.get('/followups', { params: filters });
-        setFollowups(Array.isArray(res.data) ? res.data : []);
-      } catch (err) {
-        console.error('❌ Failed to fetch followups:', err);
-        setFollowups([]);
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchFollowups();
-  }, [filters]);
+  }, []);
 
-  const toggleStatus = async (id, newStatus) => {
+  const fetchFollowups = async () => {
     try {
-      const res = await axiosInstance.patch(`/followups/${id}/status`, { status: newStatus });
-      setFollowups(f => f.map(fu => fu.id === id ? res.data : fu));
+      setLoading(true);
+      const res = await axiosInstance.get("/followups");
+      setFollowups(res.data || []);
     } catch (err) {
-      console.error('❌ Status update failed:', err);
+      console.error("Failed to load follow-ups", err);
+      setFollowups([]);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const fetchLogs = async (followupId) => {
-    if (logs[followupId]) {
-      setLogs(prev => ({ ...prev, [followupId]: null }));
-      return;
-    }
+  const changeStatus = async (id, status) => {
     try {
-      const res = await axiosInstance.get(`/followups/${followupId}/logs`);
-      setLogs(prev => ({ ...prev, [followupId]: Array.isArray(res.data) ? res.data : [] }));
+      // backend toggles status via PATCH /followups/:id/status
+      await axiosInstance.patch(`/followups/${id}/status`, { status });
+      fetchFollowups();
     } catch (err) {
-      console.error('❌ Failed to fetch logs:', err);
+      console.error("Failed to update status", err);
     }
   };
+
+  if (!isAuthenticated) return <div className="p-4">Please log in to view follow-ups.</div>;
 
   return (
-    <div className="p-4 space-y-6">
-      <h2 className="text-2xl font-bold">📆 Follow-ups</h2>
-
-      <div className="flex flex-wrap gap-4">
-        <select value={filters.status} onChange={e => setFilters(f => ({ ...f, status: e.target.value }))} className="border p-2 rounded">
-          <option value="">All Status</option>
-          <option value="PENDING">Pending</option>
-          <option value="DONE">Done</option>
-          <option value="SKIPPED">Skipped</option>
-        </select>
-        <input type="date" onChange={e => setFilters(f => ({ ...f, from: e.target.value }))} className="border p-2 rounded" />
-        <input type="date" onChange={e => setFilters(f => ({ ...f, to: e.target.value }))} className="border p-2 rounded" />
-        {['MANAGER', 'SR_MANAGER', 'DIRECTOR', 'CCO', 'ADMIN'].includes(role) && (
-          <input placeholder="Agent ID" type="text" value={filters.agentId} onChange={e => setFilters(f => ({ ...f, agentId: e.target.value }))} className="border p-2 rounded" />
-        )}
-      </div>
-
+    <div className="p-4">
+      <h1 className="text-xl font-bold mb-4">Follow-ups</h1>
       {loading ? (
-        <p className="text-blue-600">Loading...</p>
+        <div>Loading follow-ups...</div>
       ) : followups.length === 0 ? (
-        <p className="text-gray-500">🚫 No follow-ups found.</p>
+        <div>No follow-ups found.</div>
       ) : (
-        <div className="space-y-4">
-          {followups.map(fu => {
-            const overdue = new Date(fu.nextFollowupDate) < new Date();
-            const upcoming = new Date(fu.nextFollowupDate) >= new Date();
+        <ul className="space-y-3">
+          {followups.map((fu) => {
+            const latestStatus = (fu.logs && fu.logs[0] && fu.logs[0].status) || "PENDING";
             return (
-              <div key={fu.id} className="p-4 border rounded bg-white shadow">
-                <div className="flex justify-between items-center">
+              <li key={fu.id} className="p-3 border rounded bg-white shadow">
+                <div className="flex justify-between items-start">
                   <div>
-                    <h3 className="text-lg font-semibold">🔁 {fu.lead?.name || 'Lead'} — {fu.createdBy?.name}</h3>
-                    <p className="text-sm text-gray-600">{new Date(fu.nextFollowupDate).toLocaleString()}</p>
-                    <p>{fu.message}</p>
-                    <div className="text-xs mt-1">
-                      {overdue && <span className="text-red-500 font-semibold">❗ Overdue</span>}
-                      {upcoming && <span className="text-green-600 font-semibold ml-2">⏳ Upcoming</span>}
-                    </div>
+                    <div className="font-semibold">{fu.message}</div>
+                    <div className="text-sm text-gray-500">Lead: {fu.lead?.name || "—"}</div>
+                    <div className="text-sm text-gray-500">Next: {fu.nextFollowupDate ? new Date(fu.nextFollowupDate).toLocaleString() : "—"}</div>
+                    <div className="text-sm text-gray-500">Created by: {fu.createdBy?.name || "—"}</div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <select value={fu.status} onChange={e => toggleStatus(fu.id, e.target.value)} className="border px-2 py-1 rounded">
-                      <option value="PENDING">⏳ Pending</option>
-                      <option value="DONE">✅ Done</option>
-                      <option value="SKIPPED">🚫 Skipped</option>
+                  <div className="flex flex-col items-end gap-2">
+                    <select
+                      className="border px-2 py-1 rounded"
+                      value={latestStatus}
+                      onChange={(e) => changeStatus(fu.id, e.target.value)}
+                    >
+                      <option value="PENDING">PENDING</option>
+                      <option value="DONE">DONE</option>
+                      <option value="MISSED">MISSED</option>
+                      <option value="RESCHEDULED">RESCHEDULED</option>
                     </select>
-                    <button onClick={() => fetchLogs(fu.id)} className="text-blue-600 hover:underline text-sm">
-                      {logs[fu.id] ? 'Hide Log' : 'View Log'}
+                    <button
+                      className="text-sm text-blue-600"
+                      onClick={() => {
+                        // attempt to open logs in a new window or alert (simple)
+                        window.alert(JSON.stringify(fu.logs || [], null, 2));
+                      }}
+                    >
+                      View Logs
                     </button>
                   </div>
                 </div>
-                {logs[fu.id] && (
-                  <div className="mt-2 text-sm bg-gray-50 p-2 rounded border">
-                    <h4 className="font-medium mb-1">📜 Change History</h4>
-                    {logs[fu.id].length === 0 ? (
-                      <p>No changes logged.</p>
-                    ) : (
-                      <ul className="space-y-1">
-                        {logs[fu.id].map(log => (
-                          <li key={log.id} className="border-b py-1">
-                            <span className="font-medium">{log.updatedBy?.name || 'User'}</span> changed to <strong>{log.status}</strong> on {new Date(log.timestamp).toLocaleString()}
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                  </div>
-                )}
-              </div>
+              </li>
             );
           })}
-        </div>
+        </ul>
       )}
     </div>
   );
 };
 
-export default Followups;
+export default FollowUps;
